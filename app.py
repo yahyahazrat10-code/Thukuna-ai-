@@ -1,16 +1,19 @@
 
 import streamlit as st
-from openai import OpenAI
+from groq import Groq
 
 st.set_page_config(
-    page_title="Thukuna AI",
-    page_icon="⚡"
+    page_title="THUKUNA AI",
+    page_icon="⚡",
+    layout="centered"
 )
 
 st.title("⚡ THUKUNA AI")
 st.caption("Your personal AI assistant")
 
-client = OpenAI()
+client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
+)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -30,16 +33,25 @@ if prompt := st.chat_input("Talk to Thukuna..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thukuna is thinking..."):
-            response = client.responses.create(
-                model="gpt-4.1-mini",
-                instructions="You are Thukuna AI, a helpful and intelligent assistant.",
-                input=st.session_state.messages
-            )
+            try:
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are Thukuna AI, a helpful, intelligent and friendly assistant."
+                        },
+                        *st.session_state.messages
+                    ]
+                )
 
-            answer = response.output_text
-            st.markdown(answer)
+                answer = response.choices[0].message.content
+                st.markdown(answer)
 
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": answer
-    })
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer
+                })
+
+            except Exception as e:
+                st.error(f"Thukuna error: {e}")
